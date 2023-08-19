@@ -24,12 +24,19 @@ func SetClient(cl *mongo.Client) {
 }
 
 func (b *Book) CreateBookInDB() error {
-	b.Id = primitive.NewObjectID()
+	defaultId, _ := primitive.ObjectIDFromHex("000000000000000000000000")
+	//used when creating a book again in db after deleting (i.e in update)
+	if b.Id == defaultId {
+		b.Id = primitive.NewObjectID()
+	}
+	// else {
+	// 	// fmt.Printf("previous id %v\n", b.Id)
+	// }
 	res, err := client.Database(config.DbName).Collection(config.CollectionName).InsertOne(context.Background(), b)
 	if err != nil {
 		return err
 	}
-	fmt.Printf("Book created with id %v", res.InsertedID)
+	fmt.Printf("Book created with id %v\n", res.InsertedID)
 	return nil
 }
 
@@ -76,10 +83,17 @@ func (book *Book) DeleteBookWithIdFromDb() (*Book, error) {
 }
 
 func (b *Book) UpdateBookInDb() error {
-	res, err := client.Database(config.DbName).Collection(config.CollectionName).UpdateByID(context.Background(), bson.D{{Key: "_id", Value: b.Id}}, b)
-	if err != nil {
+
+	if _, err := b.DeleteBookWithIdFromDb(); err != nil {
 		return err
 	}
-	fmt.Println("Total deleted records:", res.UpsertedCount)
+
+	if err := b.CreateBookInDB(); err != nil {
+		return err
+	}
+	// res, err := client.Database(config.DbName).Collection(config.CollectionName).UpdateByID(context.Background(), bson.D{{Key: "_id", Value: b.Id}}, bson.D{{Key: "$set", Value: b}, update})
+	// if err != nil {
+	// 	return err
+	// }
 	return nil
 }

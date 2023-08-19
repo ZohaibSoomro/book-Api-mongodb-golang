@@ -20,6 +20,7 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
+
 	fmt.Println("Connection successful")
 	model.SetClient(client)
 	log.Fatal(http.ListenAndServe(":8080", r))

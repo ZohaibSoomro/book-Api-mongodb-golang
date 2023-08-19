@@ -7,6 +7,7 @@ import (
 	"github.com/julienschmidt/httprouter"
 	"github.com/zohaibsoomro/book-server-mongodb/model"
 	"go.mongodb.org/mongo-driver/bson/primitive"
+
 )
 
 func GetAllBooks(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
@@ -17,6 +18,7 @@ func GetAllBooks(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 	}
 	s, err := json.Marshal(books)
 	if err != nil {
+		w.WriteHeader(http.StatusNotAcceptable)
 		w.Write([]byte(err.Error()))
 		return
 	}
@@ -30,13 +32,15 @@ func GetBookById(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
 	iod, err := primitive.ObjectIDFromHex(id)
 	if err != nil {
 		w.WriteHeader(http.StatusNotAcceptable)
-		w.Write([]byte("Book id not formatted."))
+		w.Write([]byte("Book id not formatted.\n"))
+		w.Write([]byte(err.Error()))
 		return
 	}
 	b, err := model.GetBookWithIdFromDB(iod)
 	if err != nil {
 		w.WriteHeader(http.StatusNotFound)
-		w.Write([]byte("Book id not found!"))
+		w.Write([]byte("Book id not found!\n"))
+		w.Write([]byte(err.Error()))
 		return
 	}
 	s, _ := json.Marshal(b)
@@ -49,19 +53,21 @@ func CreateBook(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 	b := model.Book{}
 	if err := json.NewDecoder(r.Body).Decode(&b); err != nil {
 		w.WriteHeader(http.StatusNotAcceptable)
-		w.Write([]byte("Request not have valid body."))
+		w.Write([]byte("Request not have valid body.\n"))
+		w.Write([]byte(err.Error()))
 		return
 	}
 
 	if err := b.CreateBookInDB(); err != nil {
-		w.WriteHeader(http.StatusCreated)
-		w.Write([]byte("Request not have valid body."))
+		w.WriteHeader(http.StatusExpectationFailed)
+		w.Write([]byte("Book creation failed.\n"))
+		w.Write([]byte(err.Error()))
 		return
 	}
 	s, _ := json.Marshal(b)
-	w.Write([]byte("Book created "))
+	w.Write([]byte("Book created\n"))
 	w.Write(s)
-	w.WriteHeader(http.StatusOK)
+	w.WriteHeader(http.StatusCreated)
 
 }
 
@@ -71,19 +77,22 @@ func UpdateBook(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
 	iod, err := primitive.ObjectIDFromHex(id)
 	if err != nil {
 		w.WriteHeader(http.StatusNotAcceptable)
-		w.Write([]byte("Book id not formatted."))
+		w.Write([]byte("Book id not formatted.\n"))
+		w.Write([]byte(err.Error()))
 		return
 	}
 	b, err := model.GetBookWithIdFromDB(iod)
 	if err != nil {
 		w.WriteHeader(http.StatusNotFound)
-		w.Write([]byte("Id not found!"))
+		w.Write([]byte("Id not found!\n"))
+		w.Write([]byte(err.Error()))
 		return
 	}
 	book := model.Book{}
 	if err := json.NewDecoder(r.Body).Decode(&book); err != nil {
 		w.WriteHeader(http.StatusNotAcceptable)
-		w.Write([]byte("Request not have valid body."))
+		w.Write([]byte("Request not have valid body.\n"))
+		w.Write([]byte(err.Error()))
 		return
 	}
 	if b.Author != book.Author {
@@ -97,40 +106,41 @@ func UpdateBook(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
 	}
 	if err = b.UpdateBookInDb(); err != nil {
 		w.WriteHeader(http.StatusExpectationFailed)
-		w.Write([]byte("Update failed!"))
+		w.Write([]byte("Update failed!\n"))
+		w.Write([]byte(err.Error()))
 		return
 	}
 	s, _ := json.Marshal(b)
 	w.WriteHeader(http.StatusOK)
-	w.Write([]byte("Book Updated"))
+	w.Write([]byte("Book Updated\n"))
 	w.Write(s)
 }
 
 func DeleteBook(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
 	w.Header().Set("Content-type", "application/json")
-	w.WriteHeader(http.StatusOK)
-	w.Header().Set("Content-type", "application/json")
 	id := p.ByName("id")
 	iod, err := primitive.ObjectIDFromHex(id)
 	if err != nil {
 		w.WriteHeader(http.StatusNotAcceptable)
-		w.Write([]byte("Book id not formatted."))
+		w.Write([]byte("Book id not formatted.\n"))
+		w.Write([]byte(err.Error()))
 		return
 	}
 	b, err := model.GetBookWithIdFromDB(iod)
 	if err != nil {
 		w.WriteHeader(http.StatusNotFound)
-		w.Write([]byte("Id not found!"))
+		w.Write([]byte("Id not found!\n"))
 		return
 	}
 	book, err := b.DeleteBookWithIdFromDb()
 	if err != nil {
 		w.WriteHeader(http.StatusExpectationFailed)
-		w.Write([]byte("Deletion failed!"))
+		w.Write([]byte("Deletion failed!\n"))
+		w.Write([]byte(err.Error()))
 		return
 	}
 	s, _ := json.Marshal(book)
 	w.WriteHeader(http.StatusOK)
-	w.Write([]byte("Deleted book"))
+	w.Write([]byte("Deleted book:\n"))
 	w.Write(s)
 }
